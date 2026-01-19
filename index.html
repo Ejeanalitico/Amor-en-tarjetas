@@ -4,46 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>LoveDeck</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'rarity-common': '#9ca3af', // gray-400
-              'rarity-rare': '#3b82f6',   // blue-500
-              'rarity-epic': '#a855f7',   // purple-500
-              'rarity-legendary': '#eab308', // yellow-500
-              'rarity-special': '#22c55e', // green-500
-              'brand-dark': '#111827',
-              'brand-light': '#f9fafb',
-            },
-            animation: {
-              'throw-card': 'throw 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            },
-            keyframes: {
-              throw: {
-                '0%': { transform: 'translateY(0) scale(1)', opacity: '1' },
-                '50%': { transform: 'translateY(-150px) scale(0.5)', opacity: '0.8' },
-                '100%': { transform: 'translateY(-300px) scale(0)', opacity: '0' },
-              }
-            }
-          },
-        },
-      }
-    </script>
-    <style>
-      /* Hide scrollbar for Chrome, Safari and Opera */
-      .no-scrollbar::-webkit-scrollbar {
-          display: none;
-      }
-      /* Hide scrollbar for IE, Edge and Firefox */
-      .no-scrollbar {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
-      }
-    </style>
+    <title>LoveDeck</title>
+
   <script type="importmap">
 {
   "imports": {
