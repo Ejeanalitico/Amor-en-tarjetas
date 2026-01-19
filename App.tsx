@@ -14,38 +14,61 @@ import { Onboarding } from './components/Onboarding';
 import { DeckDealAnimation } from './components/DeckDealAnimation';
 import { Sparkles, X, Send, Lock, Copy, LogOut, RefreshCw, Edit2, Save } from 'lucide-react';
 
+import { subscribeToAuthChanges, logoutUser } from './services/authService';
+
 export default function App() {
     const [user, setUser] = useState<IUser | null>(null);
     const [view, setView] = useState<ViewState>('feed');
     const [feed, setFeed] = useState<IFeedItem[]>([]);
     const [stories, setStories] = useState<IStory[]>([]);
+    const [loadingAuth, setLoadingAuth] = useState(true);
 
     // Dealing Animation State
     const [isDealing, setIsDealing] = useState(false);
     const [pendingUser, setPendingUser] = useState<IUser | null>(null);
 
-    // Load User from LocalStorage on Mount
+    // Auth Subscription
     useEffect(() => {
-        const savedUserId = localStorage.getItem('lovedeck_user_id');
-        if (savedUserId) {
-            getUserProfile(savedUserId).then(u => {
-                if (u) setUser(u);
-            });
-        }
-        // Initial feed load
-        getFeed().then(setFeed);
-        getStories().then(setStories);
+        const unsubscribe = subscribeToAuthChanges(async (authUser) => {
+            if (authUser) {
+                // User is signed in, fetch profile
+                try {
+                    const profile = await getUserProfile(authUser.uid);
+                    if (profile) {
+                        setUser(profile);
+                    } else {
+                        // Profile doesn't exist yet (might happen during creation flow if listener triggers fast)
+                        // It will be set manually by handleLogin, or we can look for it again.
+                        console.log("Profile not found for auth user yet.");
+                    }
+                } catch (e) {
+                    console.error("Error fetching profile", e);
+                }
+            } else {
+                // User is signed out
+                setUser(null);
+            }
+            setLoadingAuth(false);
+        });
+
+        return () => unsubscribe();
     }, []);
+
+    // Initial Data Load
+    useEffect(() => {
+        if (user) {
+            getFeed().then(setFeed);
+            getStories().then(setStories);
+        }
+    }, [user]);
 
     // Card Play State
     const [selectedCard, setSelectedCard] = useState<ICard | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [geminiLoading, setGeminiLoading] = useState(false);
     const [geminiText, setGeminiText] = useState<string>("");
-
     // Story View State
     const [viewingStory, setViewingStory] = useState<IStory | null>(null);
-
     // Profile Edit State
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [editName, setEditName] = useState("");
@@ -81,8 +104,11 @@ export default function App() {
         setPendingUser(userWithDeck);
 
         // Persist to Firestore
-        createUserProfile(userWithDeck);
-        localStorage.setItem('lovedeck_user_id', newUser.id);
+        createUserProfile(userWithDeck).then(() => {
+            // After profile is created, set user state
+            // Usually auth listener picks this up, but we can set it optimistically/directly here
+            // to ensure dealing animation plays and completes.
+        });
     };
 
     const handleDealComplete = () => {
@@ -98,10 +124,15 @@ export default function App() {
         setIsDealing(true);
         const shuffledDeck = [...INITIAL_DECK].sort(() => Math.random() - 0.5);
         const userDeck = shuffledDeck.slice(0, 5);
-        setPendingUser({
+
+        // Optimistic update wrapper
+        const updatedUser = {
             ...user,
             deck: userDeck
-        });
+        };
+
+        setPendingUser(updatedUser);
+        updateUserProfile(user.id, updatedUser);
     };
 
     const playCard = async () => {
@@ -177,6 +208,15 @@ export default function App() {
         }
     }
 
+    const handleLogout = async () => {
+        try {
+            await logoutUser();
+            setUser(null);
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
+
     const renderDeckByCategory = () => {
         if (!user) return null;
         const categories = Object.values(Rarity);
@@ -251,6 +291,14 @@ export default function App() {
     };
 
     // --- RENDER ---
+
+    if (loadingAuth) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+        )
+    }
 
     if (isDealing) {
         return <DeckDealAnimation onComplete={handleDealComplete} />;
@@ -358,10 +406,7 @@ export default function App() {
 
                         <div className="mt-6 w-full">
                             <button
-                                onClick={() => {
-                                    setUser(null);
-                                    localStorage.removeItem('lovedeck_user_id');
-                                }}
+                                onClick={handleLogout}
                                 className="w-full py-3 text-red-500 font-medium bg-red-50 rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                             >
                                 <LogOut size={18} />

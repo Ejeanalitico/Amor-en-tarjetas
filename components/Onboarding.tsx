@@ -10,11 +10,14 @@ interface OnboardingProps {
 
 type Step = 'welcome' | 'create_profile' | 'join_profile' | 'code_reveal';
 
+import { registerUser } from '../services/authService';
+
 export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
   const [step, setStep] = useState<Step>('welcome');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     gender: 'Hombre',
     partnerName: '',
     partnerGender: 'Mujer',
@@ -22,6 +25,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
   });
   const [generatedCode, setGeneratedCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -36,21 +40,40 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
     return code;
   };
 
-  const handleCreateAccount = () => {
-    if (!formData.name || !formData.partnerName) return; // Basic validation
+  const handleCreateAccount = async () => {
+    if (!formData.name || !formData.partnerName || !formData.email || !formData.password) {
+      alert("Por favor completa todos los campos.");
+      return;
+    }
 
-    const newCode = generateCode();
-    setGeneratedCode(newCode);
-    setStep('code_reveal');
+    setLoading(true);
+    try {
+      const userCredential = await registerUser(formData.email, formData.password);
+      const newCode = generateCode();
+      setGeneratedCode(newCode);
+      setStep('code_reveal');
+    } catch (error: any) {
+      console.error("Registration Error:", error);
+      alert("Error al crear cuenta: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleJoinAccount = () => {
-    if (!formData.name || !formData.code || !formData.partnerName) return;
+  const handleJoinAccount = async () => {
+    if (!formData.name || !formData.code || !formData.partnerName || !formData.email || !formData.password) {
+      alert("Por favor completa todos los campos.");
+      return;
+    }
 
+    setLoading(true);
     try {
-      // Create user in Firestore
+      // Register in Firebase Auth first
+      const userCredential = await registerUser(formData.email, formData.password);
+
+      // Create user in Firestore with the Auth UID
       const newUser: IUser = {
-        id: `user_${Date.now()}`, // In a real auth, use auth.currentUser.uid
+        id: userCredential.user.uid,
         name: formData.name,
         email: formData.email,
         gender: formData.gender,
@@ -58,33 +81,40 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
         partnerName: formData.partnerName,
         partnerGender: formData.partnerGender,
         coupleCode: formData.code,
-        deck: [], // Deck deals in App
+        deck: [],
         lastPlayedDate: null
       };
 
       onLogin(newUser);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error joining:", error);
-      alert("Hubo un error al unirse. Inténtalo de nuevo.");
+      alert("Hubo un error al unirse: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const finishCreation = () => {
-    // Create User Object
-    const newUser: IUser = {
-      id: `user_${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      gender: formData.gender,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`,
-      partnerName: formData.partnerName,
-      partnerGender: formData.partnerGender,
-      coupleCode: generatedCode,
-      deck: [], // Deck is dealt in App.tsx
-      lastPlayedDate: null
-    };
-
-    onLogin(newUser);
+    // At this point user is already created in Auth (from handleCreateAccount)
+    // We just need to construct the object and pass it to App.tsx to save in Firestore
+    // Note: Ideally we should use the auth.currentUser.uid here
+    import('../services/firebase').then(({ auth }) => {
+      if (auth.currentUser) {
+        const newUser: IUser = {
+          id: auth.currentUser.uid,
+          name: formData.name,
+          email: formData.email,
+          gender: formData.gender,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`,
+          partnerName: formData.partnerName,
+          partnerGender: formData.partnerGender,
+          coupleCode: generatedCode,
+          deck: [],
+          lastPlayedDate: null
+        };
+        onLogin(newUser);
+      }
+    });
   };
 
   const copyToClipboard = () => {
@@ -189,6 +219,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Crea una Contraseña</label>
+              <input
+                name="password"
+                type="password"
+                placeholder="********"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+              />
+            </div>
             <hr className="border-gray-100 my-2" />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de tu Pareja</label>
@@ -288,6 +329,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
                 type="email"
                 placeholder="sam@ejemplo.com"
                 value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Crea una Contraseña</label>
+              <input
+                name="password"
+                type="password"
+                placeholder="********"
+                value={formData.password}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
               />
