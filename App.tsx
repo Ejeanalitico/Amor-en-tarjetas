@@ -183,11 +183,16 @@ export default function App() {
         const playedToday = hasPlayedToday();
 
         return (
-            <div className="pb-24">
+            <div className="pb-24 px-4 max-w-6xl mx-auto space-y-12">
                 {playedToday && (
-                    <div className="bg-orange-50 border-b border-orange-100 p-4 mb-4 flex items-center justify-center space-x-2 text-orange-700">
-                        <Lock size={16} />
-                        <span className="text-sm font-medium">Has usado tu carta diaria. Vuelve mañana.</span>
+                    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-center gap-4 text-orange-900 shadow-sm mx-auto max-w-2xl">
+                        <div className="bg-orange-100 p-3 rounded-full shrink-0">
+                            <Lock size={24} className="text-orange-600" />
+                        </div>
+                        <div className="text-center sm:text-left">
+                            <h4 className="font-bold text-lg">Has usado tu carta diaria</h4>
+                            <p className="text-orange-800/80">Vuelve mañana para desbloquear más interacciones.</p>
+                        </div>
                     </div>
                 )}
 
@@ -195,15 +200,25 @@ export default function App() {
                     const cards = user.deck.filter(c => c.rarity === rarity);
                     if (cards.length === 0) return null;
 
+                    // Header styling
+                    const headerColorClass = RARITY_BADGE_COLORS[rarity].split(' ')[1];
+
                     return (
-                        <div key={rarity} className="mb-6 px-4">
-                            <div className="flex items-center mb-3">
-                                <span className={`w-3 h-3 rounded-full mr-2 ${RARITY_BADGE_COLORS[rarity].split(' ')[0]}`}></span>
-                                <h3 className="text-sm font-bold uppercase text-gray-500 tracking-wider">{rarity}</h3>
+                        <div key={rarity} className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-backwards">
+                            <div className="flex items-center mb-6 pl-4 border-l-4 border-gray-200">
+                                <h3 className={`text-xl font-black uppercase tracking-widest ${headerColorClass} opacity-90`}>{rarity}</h3>
+                                <span className="ml-3 text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+                                    {cards.length}
+                                </span>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                {cards.map(card => (
-                                    <div key={card.id} className={playedToday ? 'opacity-50 grayscale pointer-events-none' : ''}>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                                {cards.map((card, idx) => (
+                                    <div
+                                        key={card.id}
+                                        className={`transform transition-all duration-500 hover:z-20 ${playedToday ? 'opacity-50 grayscale pointer-events-none' : 'hover:-translate-y-2'}`}
+                                        style={{ transitionDelay: `${idx * 50}ms` }}
+                                    >
                                         <CardComponent card={card} onClick={() => handleCardClick(card)} mini />
                                     </div>
                                 ))}
@@ -211,19 +226,23 @@ export default function App() {
                         </div>
                     );
                 })}
+
                 {user.deck.length === 0 && (
-                    <div className="py-12 px-6 text-center text-gray-400 flex flex-col items-center">
-                        <div className="bg-gray-100 p-4 rounded-full mb-4">
-                            <Sparkles size={32} className="text-purple-400" />
+                    <div className="py-24 text-center flex flex-col items-center animate-in fade-in zoom-in duration-500">
+                        <div className="bg-white p-8 rounded-full shadow-2xl mb-8 ring-8 ring-purple-50">
+                            <Sparkles size={64} className="text-purple-500" />
                         </div>
-                        <p className="text-lg font-bold text-gray-700 mb-2">¡Ronda Terminada!</p>
-                        <p className="text-sm mb-6">Has jugado todas tus cartas. ¿Listo para más?</p>
+                        <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">¡Mazo Vacío!</h2>
+                        <p className="text-lg text-gray-500 mb-10 max-w-md mx-auto leading-relaxed">
+                            Has jugado todas tus cartas de esta temporada.
+                            <br />¿Estás listo para barajar y comenzar de nuevo?
+                        </p>
                         <button
                             onClick={handleReshuffle}
-                            className="bg-black text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-gray-800 transition-all"
+                            className="bg-gray-900 text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl flex items-center gap-4 hover:bg-black hover:-translate-y-1 transition-all active:scale-95 group"
                         >
-                            <RefreshCw size={18} />
-                            Nueva Mano (5 Cartas)
+                            <RefreshCw size={24} className="group-hover:rotate-180 transition-transform duration-700" />
+                            Repartir Nueva Mano
                         </button>
                     </div>
                 )}

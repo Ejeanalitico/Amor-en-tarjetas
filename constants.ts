@@ -1,26 +1,28 @@
 import { Rarity, ICard } from './types';
 
+// New Color Palette based on User Feedback ("agradable a la vista")
+// Using softer backgrounds but stronger borders/accents for distinctiveness.
 export const RARITY_COLORS = {
-  [Rarity.COMMON]: 'border-gray-400 bg-gray-50 text-gray-800',
-  [Rarity.RARE]: 'border-blue-500 bg-blue-50 text-blue-900',
-  [Rarity.EPIC]: 'border-purple-500 bg-purple-50 text-purple-900',
-  [Rarity.LEGENDARY]: 'border-yellow-500 bg-yellow-50 text-yellow-900',
-  [Rarity.SPECIAL]: 'border-green-500 bg-green-50 text-green-900',
+  [Rarity.COMMON]: 'border-gray-300 bg-white text-gray-800 shadow-sm',
+  [Rarity.RARE]: 'border-blue-300 bg-gradient-to-br from-blue-50 to-white text-blue-900 shadow-blue-100',
+  [Rarity.EPIC]: 'border-purple-300 bg-gradient-to-br from-purple-50 to-white text-purple-900 shadow-purple-100',
+  [Rarity.LEGENDARY]: 'border-amber-300 bg-gradient-to-br from-amber-50 to-white text-amber-900 shadow-amber-100',
+  [Rarity.SPECIAL]: 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-white text-emerald-900 shadow-emerald-100',
 };
 
 export const RARITY_BADGE_COLORS = {
-  [Rarity.COMMON]: 'bg-gray-400 text-white',
-  [Rarity.RARE]: 'bg-blue-500 text-white',
-  [Rarity.EPIC]: 'bg-purple-500 text-white',
-  [Rarity.LEGENDARY]: 'bg-yellow-500 text-white',
-  [Rarity.SPECIAL]: 'bg-green-500 text-white',
+  [Rarity.COMMON]: 'bg-gray-200 text-gray-600',
+  [Rarity.RARE]: 'bg-blue-100 text-blue-600',
+  [Rarity.EPIC]: 'bg-purple-100 text-purple-600',
+  [Rarity.LEGENDARY]: 'bg-amber-100 text-amber-600',
+  [Rarity.SPECIAL]: 'bg-emerald-100 text-emerald-600',
 };
 
 // Helper to generate IDs
 const uuid = () => Math.random().toString(36).substr(2, 9);
 
 export const INITIAL_DECK: ICard[] = [
-  // --- COMMON (WHITE/GRAY) - 40 Cards ---
+  // --- COMMON (WHITE/GRAY) ---
   { id: uuid(), rarity: Rarity.COMMON, title: "Modo Avión Activado", description: "Debes guardar tu celular por 1 hora para platicar o estar presente sin distracciones." },
   { id: uuid(), rarity: Rarity.COMMON, title: "Tú eliges la cena", description: "Se termina el dilema de '¿qué quieres comer?'; tú decides y el otro acepta." },
   { id: uuid(), rarity: Rarity.COMMON, title: "El DJ del momento", description: "Si están juntos o en llamada, tú controlas la música o el audio por 30 minutos." },
@@ -62,7 +64,7 @@ export const INITIAL_DECK: ICard[] = [
   { id: uuid(), rarity: Rarity.COMMON, title: "Mensaje de Buenos Días", description: "Mañana el receptor debe ser quien escriba primero con un mensaje especial." },
   { id: uuid(), rarity: Rarity.COMMON, title: "Cierre de App", description: "El receptor debe cerrar esa aplicación que lo distrae demasiado cuando están juntos hoy." },
 
-  // --- RARE (BLUE) - 40 Cards ---
+  // --- RARE (BLUE) ---
   { id: uuid(), rarity: Rarity.RARE, title: "Emergencia de Cariño", description: "Se activa el protocolo; el receptor debe darte mimos y palabras bonitas por 15 min." },
   { id: uuid(), rarity: Rarity.RARE, title: "Masaje de 10 minutos", description: "El receptor debe darte un masaje relajante en la zona que tú elijas." },
   { id: uuid(), rarity: Rarity.RARE, title: "Carta de Amor Digital", description: "El receptor debe escribirte un párrafo detallado sobre algo que admire de ti." },
@@ -104,7 +106,7 @@ export const INITIAL_DECK: ICard[] = [
   { id: uuid(), rarity: Rarity.RARE, title: "Mirar el Cielo", description: "Salgan a ver las estrellas o las nubes juntos por 5 minutos." },
   { id: uuid(), rarity: Rarity.RARE, title: "Vales de Cariño", description: "El receptor te entrega un vale escrito a mano por un 'favor especial'." },
 
-  // --- EPIC (PURPLE) - 40 Cards ---
+  // --- EPIC (PURPLE) ---
   { id: uuid(), rarity: Rarity.EPIC, title: "Bandera Blanca", description: "Se detectó una emergencia de paz. El tema de discusión queda prohibido por hoy. No se menciona." },
   { id: uuid(), rarity: Rarity.EPIC, title: "Borrón y Cuenta Nueva", description: "Cualquier roce de hoy queda perdonado y olvidado instantáneamente." },
   { id: uuid(), rarity: Rarity.EPIC, title: "Disculpa Sincera", description: "El receptor debe reconocer un error reciente y pedir perdón sin justificarse." },
@@ -146,7 +148,7 @@ export const INITIAL_DECK: ICard[] = [
   { id: uuid(), rarity: Rarity.EPIC, title: "Objeto de Recuerdo", description: "Llevar un objeto del otro todo el día como amuleto." },
   { id: uuid(), rarity: Rarity.EPIC, title: "Cierre de Capítulo", description: "Deciden no volver a hablar de un malentendido pasado." },
 
-  // --- LEGENDARY (YELLOW) - 40 Cards ---
+  // --- LEGENDARY (YELLOW) ---
   { id: uuid(), rarity: Rarity.LEGENDARY, title: "Se ve más rico lo tuyo", description: "Intercambio de platillos. Disfruta lo mío y yo lo tuyo." },
   { id: uuid(), rarity: Rarity.LEGENDARY, title: "La Carta de 'Toxicidad Aprobada'", description: "Planes cancelados. Hoy no sales, te quedas conmigo. Nada personal." },
   { id: uuid(), rarity: Rarity.LEGENDARY, title: "Te Extraño", description: "Necesito verte. Detén lo que estés haciendo y ven a verme YA." },
@@ -188,7 +190,7 @@ export const INITIAL_DECK: ICard[] = [
   { id: uuid(), rarity: Rarity.LEGENDARY, title: "Deseo Especial", description: "Pide cualquier cosa (dentro de lo posible) y se te concede." },
   { id: uuid(), rarity: Rarity.LEGENDARY, title: "La Última Palabra", description: "Tú cierras cualquier decisión que se tome hoy." },
 
-  // --- SPECIAL (GREEN) - 40 Cards ---
+  // --- SPECIAL (GREEN) ---
   { id: uuid(), rarity: Rarity.SPECIAL, title: "La Carta de 'NOP'", description: "Cancela completamente cualquier carta que te acaban de lanzar." },
   { id: uuid(), rarity: Rarity.SPECIAL, title: "Espejo", description: "Devuelve el efecto de la carta al lanzador. Ahora tú obtienes el beneficio." },
   { id: uuid(), rarity: Rarity.SPECIAL, title: "Reversa", description: "Si te piden algo físico, ahora el otro debe hacerlo por ti." },
