@@ -15,6 +15,7 @@ import { DeckDealAnimation } from './components/DeckDealAnimation';
 import { Sparkles, X, Send, Lock, Copy, LogOut, RefreshCw, Edit2, Save } from 'lucide-react';
 
 import { subscribeToAuthChanges, logoutUser } from './services/authService';
+import { TutorialOverlay } from './components/TutorialOverlay';
 
 export default function App() {
     const [user, setUser] = useState<IUser | null>(null);
@@ -22,6 +23,9 @@ export default function App() {
     const [feed, setFeed] = useState<IFeedItem[]>([]);
     const [stories, setStories] = useState<IStory[]>([]);
     const [loadingAuth, setLoadingAuth] = useState(true);
+
+    // Tutorial State
+    const [showTutorial, setShowTutorial] = useState(false);
 
     // Dealing Animation State
     const [isDealing, setIsDealing] = useState(false);
@@ -87,14 +91,14 @@ export default function App() {
     };
 
     // --- Deck shuffling Logic ---
-    const handleLogin = (newUser: IUser) => {
+    const handleLogin = (newUser: IUser, isCreator: boolean) => {
         setIsDealing(true);
+        setShowTutorial(true);
 
-        // Shuffle the full deck
-        const shuffledDeck = [...INITIAL_DECK].sort(() => Math.random() - 0.5);
-
-        // DEAL: Give 5 unique random cards to user
-        const userDeck = shuffledDeck.slice(0, 5);
+        // DISTRIBUTE: 100 unique cards based on role (Creator=Even, Joiner=Odd indices)
+        const userDeck = INITIAL_DECK.filter((_, index) => {
+            return isCreator ? index % 2 === 0 : index % 2 !== 0;
+        });
 
         // Assign to pending user
         const userWithDeck = {
@@ -106,8 +110,6 @@ export default function App() {
         // Persist to Firestore
         createUserProfile(userWithDeck).then(() => {
             // After profile is created, set user state
-            // Usually auth listener picks this up, but we can set it optimistically/directly here
-            // to ensure dealing animation plays and completes.
         });
     };
 
@@ -252,12 +254,13 @@ export default function App() {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                            {/* Responsive Grid: 2 cols mobile, 3 tablet, 4 desktop, 5 wide */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
                                 {cards.map((card, idx) => (
                                     <div
                                         key={card.id}
                                         className={`transform transition-all duration-500 hover:z-20 ${playedToday ? 'opacity-50 grayscale pointer-events-none' : 'hover:-translate-y-2'}`}
-                                        style={{ transitionDelay: `${idx * 50}ms` }}
+                                        style={{ transitionDelay: `${idx * 30}ms` }}
                                     >
                                         <CardComponent card={card} onClick={() => handleCardClick(card)} mini />
                                     </div>
@@ -310,6 +313,7 @@ export default function App() {
 
     return (
         <div className="flex flex-col h-full bg-gray-50">
+            {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
 
             {/* Top Bar (Sticky) */}
             <div className="bg-white sticky top-0 z-30 shadow-sm">

@@ -5,7 +5,7 @@ import { IUser } from '../types';
 import { INITIAL_DECK } from '../constants';
 
 interface OnboardingProps {
-  onLogin: (user: IUser) => void;
+  onLogin: (user: IUser, isCreator: boolean) => void;
 }
 
 type Step = 'welcome' | 'create_profile' | 'join_profile' | 'code_reveal';
@@ -85,7 +85,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
         lastPlayedDate: null
       };
 
-      onLogin(newUser);
+      onLogin(newUser, false); // isCreator = false
     } catch (error: any) {
       console.error("Error joining:", error);
       alert("Hubo un error al unirse: " + error.message);
@@ -112,7 +112,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
           deck: [],
           lastPlayedDate: null
         };
-        onLogin(newUser);
+        onLogin(newUser, true); // isCreator = true
       }
     });
   };
