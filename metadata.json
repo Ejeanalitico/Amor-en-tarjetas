@@ -1,0 +1,8 @@
+{
+  "name": "LoveDeck: Conexión en Pareja",
+  "description": "Una aplicación de gamificación para parejas basada en cartas digitales, enfocada en la conexión emocional, la resolución de conflictos y la espontaneidad.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
