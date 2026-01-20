@@ -6,23 +6,36 @@ import { INITIAL_DECK } from '../constants';
 
 interface OnboardingProps {
   onLogin: (user: IUser, isCreator: boolean) => void;
+  authUser?: any;
 }
 
 type Step = 'welcome' | 'create_profile' | 'join_profile' | 'code_reveal' | 'login';
 
 import { registerUser, loginUser } from '../services/authService';
 
-export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
+export const Onboarding: React.FC<OnboardingProps> = ({ onLogin, authUser }) => {
   const [step, setStep] = useState<Step>('welcome');
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    name: authUser?.displayName || '',
+    email: authUser?.email || '',
     password: '',
     gender: 'Hombre',
     partnerName: '',
     partnerGender: 'Mujer',
     code: '',
   });
+
+  // Effect to handle case where user is already auth'd (e.g. from failed creation flow)
+  React.useEffect(() => {
+    if (authUser?.email) {
+      setFormData(prev => ({ ...prev, email: authUser.email }));
+      // If we are on login screen but already auth'd, go to welcome or profile creation
+      if (step === 'login') {
+        setStep('welcome');
+      }
+    }
+  }, [authUser]);
+
   const [generatedCode, setGeneratedCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,14 +70,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
   };
 
   const handleCreateAccount = async () => {
-    if (!formData.name || !formData.partnerName || !formData.email || !formData.password) {
+    if (!formData.name || !formData.partnerName || (!authUser && (!formData.email || !formData.password))) {
       alert("Por favor completa todos los campos.");
       return;
     }
 
     setLoading(true);
     try {
-      await registerUser(formData.email, formData.password);
+      if (!authUser) {
+        await registerUser(formData.email, formData.password);
+      }
       const newCode = generateCode();
       setGeneratedCode(newCode);
       setStep('code_reveal');
@@ -94,19 +109,23 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
   };
 
   const handleJoinAccount = async () => {
-    if (!formData.name || !formData.code || !formData.partnerName || !formData.email || !formData.password) {
+    if (!formData.name || !formData.code || !formData.partnerName || (!authUser && (!formData.email || !formData.password))) {
       alert("Por favor completa todos los campos.");
       return;
     }
 
     setLoading(true);
     try {
-      // Register in Firebase Auth first
-      const userCredential = await registerUser(formData.email, formData.password);
+      let uid = authUser?.uid;
+
+      if (!authUser) {
+        const userCredential = await registerUser(formData.email, formData.password);
+        uid = userCredential.user.uid;
+      }
 
       // Create user in Firestore with the Auth UID
       const newUser: IUser = {
-        id: userCredential.user.uid,
+        id: uid,
         name: formData.name,
         email: formData.email,
         gender: formData.gender,
@@ -131,23 +150,41 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
     // At this point user is already created in Auth (from handleCreateAccount)
     // We just need to construct the object and pass it to App.tsx to save in Firestore
     // Note: Ideally we should use the auth.currentUser.uid here
-    import('../services/firebase').then(({ auth }) => {
-      if (auth.currentUser) {
-        const newUser: IUser = {
-          id: auth.currentUser.uid,
-          name: formData.name,
-          email: formData.email,
-          gender: formData.gender,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`,
-          partnerName: formData.partnerName,
-          partnerGender: formData.partnerGender,
-          coupleCode: generatedCode,
-          deck: [],
-          lastPlayedDate: null
-        };
-        onLogin(newUser, true); // isCreator = true
-      }
-    });
+    const uid = authUser?.uid;
+
+    if (uid) {
+      const newUser: IUser = {
+        id: uid,
+        name: formData.name,
+        email: formData.email,
+        gender: formData.gender,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`,
+        partnerName: formData.partnerName,
+        partnerGender: formData.partnerGender,
+        coupleCode: generatedCode,
+        deck: [],
+        lastPlayedDate: null
+      };
+      onLogin(newUser, true); // isCreator = true
+    } else {
+      import('../services/firebase').then(({ auth }) => {
+        if (auth.currentUser) {
+          const newUser: IUser = {
+            id: auth.currentUser.uid,
+            name: formData.name,
+            email: formData.email,
+            gender: formData.gender,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`,
+            partnerName: formData.partnerName,
+            partnerGender: formData.partnerGender,
+            coupleCode: generatedCode,
+            deck: [],
+            lastPlayedDate: null
+          };
+          onLogin(newUser, true);
+        }
+      });
+    }
   };
 
   const copyToClipboard = () => {
@@ -169,13 +206,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
           Gamifica tu relación, conecta con tu pareja y crea recuerdos inolvidables.
         </p>
 
+        {authUser && (
+          <div className="mb-8 bg-white/20 p-4 rounded-xl backdrop-blur-sm border border-white/20 animate-in fade-in slide-in-from-top-4">
+            <p className="text-sm text-white/90 font-medium">Sesión iniciada como</p>
+            <p className="font-bold text-lg">{authUser.email}</p>
+            <p className="text-xs text-white/70 mt-1">Completa tu perfil para continuar</p>
+          </div>
+        )}
+
         <div className="w-full max-w-sm space-y-4">
           <button
             onClick={() => setStep('create_profile')}
             className="w-full bg-white text-purple-700 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-gray-50 transition-transform active:scale-95 flex items-center justify-center gap-2"
           >
             <UserPlus size={20} />
-            Crear Nueva Pareja
+            {authUser ? 'Completar Perfil' : 'Crear Nueva Pareja'}
           </button>
 
           <button
@@ -183,15 +228,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
             className="w-full bg-purple-900/40 text-white border border-white/30 py-4 rounded-xl font-bold text-lg hover:bg-purple-900/60 transition-transform active:scale-95 flex items-center justify-center gap-2"
           >
             <Users size={20} />
-            Tengo un Código
+            {authUser ? 'Vincular con Código' : 'Tengo un Código'}
           </button>
 
-          <button
-            onClick={() => setStep('login')}
-            className="w-full bg-white/10 text-white border border-white/40 hover:bg-white/20 py-4 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center gap-2 backdrop-blur-sm"
-          >
-            ¿Ya tienes cuenta? Iniciar Sesión
-          </button>
+          {!authUser && (
+            <button
+              onClick={() => setStep('login')}
+              className="w-full bg-white/10 text-white border border-white/40 hover:bg-white/20 py-4 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center gap-2 backdrop-blur-sm"
+            >
+              ¿Ya tienes cuenta? Iniciar Sesión
+            </button>
+          )}
         </div>
 
         <p className="text-xs text-white/40 mt-8">Versión 1.1.0</p>
@@ -280,10 +327,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
 
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full py-6">
           <div className="mb-6">
-            <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-4 text-pink-600">
+            <div className={`w-12 h-12 ${authUser ? 'bg-green-100 text-green-600' : 'bg-pink-100 text-pink-600'} rounded-full flex items-center justify-center mb-4`}>
               <Sparkles size={24} />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Crear Perfil</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{authUser ? 'Completar Perfil' : 'Crear Perfil'}</h2>
             <p className="text-gray-500">Inicia tu aventura en pareja.</p>
           </div>
 
@@ -309,20 +356,25 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
                 placeholder="alex@ejemplo.com"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                disabled={!!authUser} // Disable if already auth'd
+                className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all ${authUser ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Crea una Contraseña</label>
-              <input
-                name="password"
-                type="password"
-                placeholder="********"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
-              />
-            </div>
+
+            {!authUser && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Crea una Contraseña</label>
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="********"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                />
+              </div>
+            )}
+
             <hr className="border-gray-100 my-2" />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de tu Pareja</label>
@@ -394,10 +446,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
 
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full py-6">
           <div className="mb-6">
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4 text-purple-600">
+            <div className={`w-12 h-12 ${authUser ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'} rounded-full flex items-center justify-center mb-4`}>
               <Users size={24} />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Unirse a Pareja</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{authUser ? 'Completar Vinculación' : 'Unirse a Pareja'}</h2>
             <p className="text-gray-500">Ingresa el código que te compartieron.</p>
           </div>
 
@@ -423,20 +475,25 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
                 placeholder="sam@ejemplo.com"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+                disabled={!!authUser}
+                className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all ${authUser ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Crea una Contraseña</label>
-              <input
-                name="password"
-                type="password"
-                placeholder="********"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
-              />
-            </div>
+
+            {!authUser && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Crea una Contraseña</label>
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="********"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+                />
+              </div>
+            )}
+
             <hr className="border-gray-100 my-2" />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de tu Pareja</label>
