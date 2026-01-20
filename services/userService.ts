@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { IUser, ICard } from "../types";
 import { INITIAL_DECK } from "../constants";
@@ -15,19 +15,44 @@ export const createUserProfile = async (user: IUser) => {
 };
 
 export const getUserProfile = async (userId: string): Promise<IUser | null> => {
-    const userRef = doc(db, "users", userId);
-    const docSnap = await getDoc(userRef);
+    try {
+        const userRef = doc(db, "users", userId);
+        const docSnap = await getDoc(userRef);
 
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        return {
-            ...data,
-            id: docSnap.id,
-            lastPlayedDate: data.lastPlayedDate ? data.lastPlayedDate.toDate() : null,
-        } as IUser;
-    } else {
-        return null;
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            return {
+                ...data,
+                id: docSnap.id,
+                lastPlayedDate: data.lastPlayedDate ? data.lastPlayedDate.toDate() : null,
+            } as IUser;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting user profile:", error);
+        throw error;
     }
+};
+
+export const subscribeToUserProfile = (userId: string, onUpdate: (user: IUser | null) => void) => {
+    const userRef = doc(db, "users", userId);
+    return onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const user = {
+                ...data,
+                id: docSnap.id,
+                lastPlayedDate: data.lastPlayedDate ? data.lastPlayedDate.toDate() : null,
+            } as IUser;
+            onUpdate(user);
+        } else {
+            onUpdate(null);
+        }
+    }, (error) => {
+        console.error("Error subscribing to profile:", error);
+        // Don't call onUpdate(null) here necessarily, maybe keep stale data or handle error elsewhere
+    });
 };
 
 export const updateUserProfile = async (userId: string, data: Partial<IUser>) => {

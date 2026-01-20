@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { INITIAL_DECK, MOCK_USER_ID, MOCK_PARTNER_ID, RARITY_BADGE_COLORS } from './constants';
 import { ICard, IUser, IFeedItem, ViewState, IStory, Rarity } from './types';
 import { generateCardFlavor } from './services/geminiService';
-import { createUserProfile, updateUserProfile, getUserProfile } from './services/userService';
+import { createUserProfile, updateUserProfile, getUserProfile, subscribeToUserProfile } from './services/userService';
 import { addToFeed, addStory, getFeed, getStories } from './services/feedService';
 import { Navigation } from './components/Navigation';
 import { CardComponent } from './components/CardComponent';
@@ -31,32 +31,32 @@ export default function App() {
     const [isDealing, setIsDealing] = useState(false);
     const [pendingUser, setPendingUser] = useState<IUser | null>(null);
 
+    const [authUser, setAuthUser] = useState<any>(null); // Track Firebase Auth User separately
+
     // Auth Subscription
     useEffect(() => {
-        const unsubscribe = subscribeToAuthChanges(async (authUser) => {
-            if (authUser) {
-                // User is signed in, fetch profile
-                try {
-                    const profile = await getUserProfile(authUser.uid);
-                    if (profile) {
-                        setUser(profile);
-                    } else {
-                        // Profile doesn't exist yet (might happen during creation flow if listener triggers fast)
-                        // It will be set manually by handleLogin, or we can look for it again.
-                        console.log("Profile not found for auth user yet.");
-                    }
-                } catch (e) {
-                    console.error("Error fetching profile", e);
-                }
-            } else {
-                // User is signed out
+        const unsubscribe = subscribeToAuthChanges((user) => {
+            setAuthUser(user);
+            if (!user) {
                 setUser(null);
+                setLoadingAuth(false);
             }
-            setLoadingAuth(false);
         });
 
         return () => unsubscribe();
     }, []);
+
+    // User Profile Subscription
+    useEffect(() => {
+        if (authUser) {
+            setLoadingAuth(true);
+            const unsubscribe = subscribeToUserProfile(authUser.uid, (profile) => {
+                setUser(profile);
+                setLoadingAuth(false);
+            });
+            return () => unsubscribe();
+        }
+    }, [authUser]);
 
     // Initial Data Load
     useEffect(() => {
