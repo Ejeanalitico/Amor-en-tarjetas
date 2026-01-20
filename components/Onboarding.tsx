@@ -8,9 +8,9 @@ interface OnboardingProps {
   onLogin: (user: IUser, isCreator: boolean) => void;
 }
 
-type Step = 'welcome' | 'create_profile' | 'join_profile' | 'code_reveal';
+type Step = 'welcome' | 'create_profile' | 'join_profile' | 'code_reveal' | 'login';
 
-import { registerUser } from '../services/authService';
+import { registerUser, loginUser } from '../services/authService';
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
   const [step, setStep] = useState<Step>('welcome');
@@ -38,6 +38,22 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+  };
+
+  const handleLoginAccount = async () => {
+    if (!formData.email || !formData.password) {
+      alert("Por favor ingresa email y contraseña.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await loginUser(formData.email, formData.password);
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      alert("Error al iniciar sesión: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateAccount = async () => {
@@ -152,9 +168,69 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
             <Users size={20} />
             Tengo un Código
           </button>
+
+          <button
+            onClick={() => setStep('login')}
+            className="w-full bg-white/10 text-white border border-white/40 hover:bg-white/20 py-4 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center gap-2 backdrop-blur-sm"
+          >
+            ¿Ya tienes cuenta? Iniciar Sesión
+          </button>
         </div>
 
         <p className="text-xs text-white/40 mt-8">Versión 1.1.0</p>
+      </div>
+    );
+  }
+
+  if (step === 'login') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white w-full max-w-lg p-8 rounded-3xl shadow-xl">
+          <button onClick={() => setStep('welcome')} className="text-gray-400 hover:text-gray-600 mb-6 flex items-center gap-2">
+            <ArrowRight size={16} className="rotate-180" /> Volver
+          </button>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Bienvenido de nuevo</h2>
+          <p className="text-gray-500 mb-8">Ingresa tus credenciales para continuar.</p>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tu Email</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none"
+                placeholder="tu@email.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleLoginAccount}
+            disabled={loading}
+            className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-purple-700 mt-8 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                Iniciar Sesión <ArrowRight size={20} />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     );
   }
