@@ -308,7 +308,7 @@ export default function App() {
     }
 
     if (!user) {
-        return <Onboarding onLogin={handleLogin} />;
+        return <Onboarding onLogin={handleLogin} authUser={authUser} />;
     }
 
     return (
