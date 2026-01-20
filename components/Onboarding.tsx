@@ -64,13 +64,30 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onLogin }) => {
 
     setLoading(true);
     try {
-      const userCredential = await registerUser(formData.email, formData.password);
+      await registerUser(formData.email, formData.password);
       const newCode = generateCode();
       setGeneratedCode(newCode);
       setStep('code_reveal');
     } catch (error: any) {
       console.error("Registration Error:", error);
-      alert("Error al crear cuenta: " + error.message);
+      if (error.code === 'auth/email-already-in-use') {
+        // Optionally try to login if password matches, or just alert user
+        try {
+          await loginUser(formData.email, formData.password);
+          // If login succeeds with the same credentials, just proceed to code generation/profile setup
+          // Check if user already has a profile? For now, we assume if they are "creating" they might want to overwrite or just enter.
+          // But 'finishCreation' logic relies on 'generatedCode'.
+
+          // Simplest flow: Tell them the email exists and redirect to login state
+          alert("Este correo ya está registrado. Redirigiendo a inicio de sesión...");
+          setStep('login');
+        } catch (loginError: any) {
+          alert("Este correo ya está registrado, pero la contraseña no coincide. Por favor inicia sesión.");
+          setStep('login');
+        }
+      } else {
+        alert("Error al crear cuenta: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
